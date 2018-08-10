@@ -15,28 +15,22 @@ resource "aws_security_group" "provisioning_example-lb" {
     name = "provisioning_example lb"
     description = "Security group for the load balancer"
     ingress {
-      from_port = 80
-      to_port = 80
-      protocol = "tcp"
-      cidr_blocks = ["${var.management_ip}/32"]
-    }
-    ingress {
       from_port = 8080
       to_port = 8080
       protocol = "tcp"
-      cidr_blocks = ["${var.management_ip}/32"]
+      cidr_blocks = ["98.226.72.162/32"]
     }
     ingress {
       from_port = 8081
       to_port = 8081
       protocol = "tcp"
-      cidr_blocks = ["${var.management_ip}/32"]
+      cidr_blocks = ["98.226.72.162/32"]
     }
     ingress {
       from_port = 22
       to_port = 22
       protocol = "tcp"
-      cidr_blocks = ["${var.management_ip}/32"]
+      cidr_blocks = ["98.226.72.162/32"]
     }
 
     egress {
@@ -67,10 +61,21 @@ resource "aws_instance" "jenkins" {
 # Create a Nexus Server
 resource "aws_instance" "nexus" {
   ami           = "${var.nexus_ami}"
-  instance_type = "t2.small"
+  instance_type = "t2.medium"
   key_name = "${aws_key_pair.root.key_name}"
   vpc_security_group_ids = ["${aws_security_group.provisioning_example-lb.id}"]
   tags {
     Name = "nexus.dev.local"
+  }
+  provisioner "remote-exec" {
+    connection {
+      type        = "ssh"
+      agent       = false
+      user        = "ubuntu"
+      private_key = "${file("id_rsa")}"
+    }
+    inline = [
+      "sudo docker run -d -p 8081:8081 --name nexus sonatype/nexus3",
+    ]
   }
 }
