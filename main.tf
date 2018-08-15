@@ -75,9 +75,6 @@ resource "null_resource" "configure_nexus" {
       user        = "ubuntu"
       private_key = "${file("id_rsa")}"
     }
-    inline = [
-      "sudo docker run -d -p 8081:8081 --name nexus sonatype/nexus3",
-    ]
   }
 }
 
