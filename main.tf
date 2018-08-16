@@ -21,16 +21,11 @@ resource "aws_security_group" "provisioning_example-lb" {
       cidr_blocks = ["98.226.72.162/32", "204.14.236.213/32"]
     }
     ingress {
-      from_port = 80
-      to_port = 80
-      protocol = "tcp"
-      cidr_blocks = ["98.226.72.162/32"]
-    }
-    ingress {
       from_port = 8081
       to_port = 8081
       protocol = "tcp"
       cidr_blocks = ["98.226.72.162/32", "204.14.236.213/32"]
+      self = true
     }
     ingress {
       from_port = 22
@@ -97,6 +92,13 @@ data "template_file" "jenkins_location" {
     jenkins_ip = "${aws_instance.jenkins.public_ip}"
   }
 }
+data "template_file" "jenkins_nexus_config" {
+  template = "${file("${path.module}/jenkins_configs/org.sonatype.nexus.ci.config.GlobalNexusConfiguration.xml.tpl")}"
+
+  vars {
+    nexus_ip = "${aws_instance.nexus.private_ip}"
+  }
+}
 resource "null_resource" "configure_jenkins" {
   connection {
     host = "${aws_instance.jenkins.public_ip}"
@@ -110,6 +112,7 @@ resource "null_resource" "configure_jenkins" {
     }
     inline = [
       "sudo sh -c 'cat > /var/lib/jenkins/init.groovy.d/configure_jenkins_url.groovy << EOF \n${data.template_file.jenkins_location.rendered}\nEOF\n'",
+      "sudo sh -c 'cat > /var/lib/jenkins/org.sonatype.nexus.ci.config.GlobalNexusConfiguration.xml << EOF \n${data.template_file.jenkins_nexus_config.rendered}\nEOF\n'",
       "sudo service jenkins restart"
     ]
   }
